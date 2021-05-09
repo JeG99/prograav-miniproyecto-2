@@ -76,3 +76,36 @@ db_table* parse(char* filename) {
 
     return table;
 }
+
+db_table* select(db_table* o_table, char** columns, int columnSize) {
+    db_table* table = malloc(sizeof(db_table));
+    table->columns = columns;
+
+    matrix_shape shape;
+    shape.rows = o_table->shape.rows;
+    shape.cols = columnSize;
+    table->shape = shape;
+    table->lastRow = o_table->lastRow;
+
+    table->rows = malloc(sizeof(char**) * shape.rows);
+
+    // Copia las filas de la tabla original
+    for (int i = 0; i < table->lastRow; i++) {
+        table->rows[i] = malloc(sizeof(char*) * shape.cols);
+
+        // Itera cada columna del select
+        for (int col_idx = 0; col_idx < shape.cols; col_idx++) {
+            char* col = columns[col_idx];
+            for (int j = 0; j < o_table->shape.cols; j++) {
+                // Inserta el valor de la columna en la fila si esta en el select
+                if (strcmp(col, o_table->columns[j]) == 0) {
+                    table->rows[i][col_idx] = malloc(CELL_LENGTH);
+                    strcpy(table->rows[i][col_idx], o_table->rows[i][j]);
+                    break;
+                }
+            }
+        }
+    }
+
+    return table;
+}
