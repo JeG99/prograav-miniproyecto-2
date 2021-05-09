@@ -3,6 +3,7 @@
 #include <stdlib.h>
 
 #include "db.h"
+#include "table.h"
 
 int main() {
     char* columns[3] = {"Fecha",
