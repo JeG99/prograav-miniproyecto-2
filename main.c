@@ -1,18 +1,28 @@
-// Creado para pruebas * 
+// Creado para pruebas *
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "table.h"
+#include "db.h"
 
 int main() {
     char* columns[3] = {"Fecha",
                         "Hora",
                         "Nombre"};
 
-    db_table* my_table = createTable(columns, 5);
+    db_table* my_table = createTable(columns, 3, 5);
 
     my_table->rows[0][1] = "16:00";
     printf("Second : %s\n", my_table->rows[0][1]);
     printf("Column : %s\n", my_table->columns[1]);
     printf("Shape: (%d, %d)\n", my_table->shape.rows, my_table->shape.cols);
+
+    db_table* parsed = parse("table_1.txt");
+    printf("%s %d\n", parsed->columns[0], parsed->lastRow);
+    printTable(parsed);
+
+    char* selection[] = {"c1", "c3", "c4"};
+    db_table* selected = select(parsed, selection, 3);
+    printTable(selected);
+
+    printTable(parsed);
 }
