@@ -1,3 +1,6 @@
+#ifndef TABLE_H
+#define TABLE_H
+
 typedef struct {
     int rows;
     int cols;
@@ -13,3 +16,5 @@ typedef struct {
 const int CELL_LENGTH;
 
 db_table *createTable(char **columns, int row_space);
+
+#endif /* TABLE_H */
