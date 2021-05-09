@@ -18,15 +18,12 @@ int account_validation(char* user, char* password)
     char line[MAX_LINE], *token;
     FILE* users = fopen("config.txt", "r");
     if(users != NULL) 
-    {   /*
-        puts(user);
-        puts(password);*/
+    {   
         while(!feof(users)){
             fgets(line, MAX_LINE, users);
             token = strtok(line, ":");
             if(strncmp(token, user, strlen(user)) == 0){
                 token = strtok(NULL, ":");
-                //puts("hola");
                 if(strncmp(token, password, strlen(password)) == 0) 
                 {
                     val = 1;
@@ -48,7 +45,7 @@ void server_init_test()
 	server_socket = socket(AF_INET, SOCK_STREAM, 0);
 	if (server_socket == -1)
 	{
-		printf("Could not create socket");
+		printf("Socket creation error");
 	}
 	puts("Socket created");
 	
@@ -61,14 +58,15 @@ void server_init_test()
 	if( bind(server_socket,(struct sockaddr *)&server, sizeof(server)) < 0)
 	{
 		//print the error message
-		perror("bind failed. Error");
+		perror("Bind error");
 	}
-	puts("bind done");
+	puts("Bind done");
 	
 	//Listen
 	listen(server_socket, 3);
 	
 	//Accept and incoming connection
+wait_for_new_connection:
 	puts("Waiting for incoming connections...");
 	c = sizeof(struct sockaddr_in);
 	
@@ -76,23 +74,31 @@ void server_init_test()
 	client_socket = accept(server_socket, (struct sockaddr *)&client, (socklen_t*)&c);
 	if (client_socket < 0)
 	{
-		perror("accept failed");
+		perror("Client connection failed");
 	}
-	puts("Connection accepted");
+	puts("Client connection accepted");
 	
 	//Receive a message from client
 	//while( (read_size = recv(client_socket, recv_buffer, 2000, 0)) > 0 )
-	do {
+	do 
+    {
 		//Send the message back to client
         memset(recv_buffer, 0, strlen(recv_buffer));
         read_size = recv(client_socket, recv_buffer, 2000, 0);
         //write(client_socket, recv_buffer, strlen(recv_buffer));
-        if(strncmp(recv_buffer, "LOGIN_REQUEST", strlen("LOGIN_REQUEST")) == 0){
+
+        if(strncmp(recv_buffer, "CLIENT_EXIT", strlen("CLIENT_EXIT")) == 0)
+        {
+            goto wait_for_new_connection; // TODO: explorar alternativas
+        }
+
+        if(strncmp(recv_buffer, "LOGIN_REQUEST", strlen("LOGIN_REQUEST")) == 0)
+        {
             int validation = 0;
             char user[1024], password[1024];
             memset(user, 0, strlen(user));
             memset(password, 0, strlen(password));
-            write(client_socket, "Usuario: ", strlen("Usuario: "));
+            write(client_socket, "User: ", strlen("User: "));
             while(strlen(user) == 0)
             {
                 memset(recv_buffer, 0, strlen(recv_buffer));
@@ -100,7 +106,7 @@ void server_init_test()
                 strncpy(user, recv_buffer, strlen(recv_buffer));
             }
 
-            write(client_socket, "Contraseña: ", strlen("Contraseña: "));
+            write(client_socket, "Password: ", strlen("Password: "));
             while(strlen(password) == 0)
             {
                 memset(recv_buffer, 0, strlen(recv_buffer));
@@ -110,15 +116,20 @@ void server_init_test()
             validation = account_validation(user, password);
             printf("%d\n", account_validation(user, password));
             write(client_socket, validation ? "AUTHENTICATED":"BAD_AUTH", validation ? strlen("AUTHENTICATED"):strlen("BAD_AUTH"));
-
-        } else if(read_size > 0) {
+            continue;
+        } 
+        if (read_size > 0) 
+        {
             write(client_socket, recv_buffer, strlen(recv_buffer));
-        }else if(read_size == -1) {
-            write(client_socket, "Error en la lectura", strlen("Error en la lectura"));
+        }
+        if(read_size == -1) 
+        {
+            write(client_socket, "Read error", strlen("Read error"));
         }
 
     } while(1);
 	
+    
 	if(read_size == 0)
 	{
 		puts("Client disconnected");
@@ -127,76 +138,9 @@ void server_init_test()
 	}
 	else if(read_size == -1)
 	{
-		perror("recv failed");
+		perror("Read error");
 	}
     
-}
-
-void server_init() 
-{
-    
-    int listenfd = 0, connfd = 0, n = 0;
-    socklen_t c = 0;
-    struct sockaddr_in serv_addr, client; 
-
-    char sendBuff[1025];
-    char recvBuff[1024];
-    //time_t ticks;
-
-    listenfd = socket(AF_INET, SOCK_STREAM, 0);
-    //memset(&serv_addr, '0', sizeof(serv_addr));
-    //memset(sendBuff, '0', sizeof(sendBuff));
-
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_addr.s_addr = htonl(INADDR_ANY);
-    serv_addr.sin_port = htons(5000); 
-
-    bind(listenfd, (struct sockaddr*)&serv_addr, sizeof(serv_addr));
-
-    listen(listenfd, 10); 
-
-    c = sizeof(struct sockaddr_in);
-    //connfd = accept(listenfd, (struct sockaddr*)&client, &c);
-    /*while(1){
-        recv(listenfd, recvBuff, strlen(recvBuff), 0);
-        if(strcmp(recvBuff, "hello") == 0)
-        {
-            strcpy(sendBuff, "hola de vuelta");
-            send(listenfd, sendBuff, strlen(sendBuff), 0);
-        }
-    }*/
-
-    //close(connfd);
-    //sleep(1);
-    
-    
-    while(1)
-    {
-        //connfd = accept(listenfd, (struct sockaddr*)NULL, NULL); 
-        connfd = accept(listenfd, (struct sockaddr*)&client, &c);
-        snprintf(sendBuff, sizeof(sendBuff), "%s ", "Usuario:");
-        //write(connfd, sendBuff, strlen(sendBuff));
-        send(listenfd, sendBuff, strlen(sendBuff), 0);
-        while( (n = read(listenfd, recvBuff, sizeof(recvBuff)-1)) > 0 ) {
-            if(strcmp(recvBuff, "user") == 0) 
-            {
-                recvBuff[c] = 0;
-                snprintf(sendBuff, sizeof(sendBuff), "%s ", "QUE ONDA MAMONES");
-                send(listenfd, sendBuff, strlen(sendBuff), 0);
-                //write(connfd, sendBuff, strlen(sendBuff));
-            }
-            if(fputs(recvBuff, stdout) == EOF)
-            {
-                printf("\n Error : Fputs error\n");
-            }
-        }
-        //ticks = time(NULL);
-        //snprintf(sendBuff, sizeof(sendBuff), "%.24s\r\n", ctime(&ticks));
-        
-
-        close(connfd);
-        sleep(1);
-     }    
 }
 
 static void daemonize()
@@ -254,13 +198,14 @@ static void daemonize()
 
 int main()
 {   
+    server_init_test();        
     printf("Starting daemonize\n");
     daemonize();
     
 
     while (1)
     {
-        server_init_test();        
+
     }
 
     syslog (LOG_NOTICE, "First daemon terminated.");

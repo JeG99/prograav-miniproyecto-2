@@ -16,7 +16,7 @@ int main(int argc , char *argv[])
 	server_socket = socket(AF_INET , SOCK_STREAM , 0);
 	if (server_socket == -1)
 	{
-		printf("Could not create socket");
+		printf("Socket creation error");
 	}
 	puts("Socket created");
 	
@@ -27,22 +27,36 @@ int main(int argc , char *argv[])
 	//Connect to remote server
 	if (connect(server_socket , (struct sockaddr *)&server , sizeof(server)) < 0)
 	{
-		perror("connect failed. Error");
+		perror("Server connection failed");
 		return 1;
 	}
 	
-	puts("Connected\n");
+	puts("Server connection accepted\n");
 	
 	//keep communicating with server
 	while(1)
     {
-
+		memset(send_buffer, 0, strlen(send_buffer));
+		memset(recv_buffer, 0, strlen(recv_buffer));
 		if(logged_in) {
-			memset(send_buffer, 0, strlen(send_buffer));
-			memset(recv_buffer, 0, strlen(recv_buffer));
 			printf("Enter send_buffer : ");
 			scanf("%s" , send_buffer);
 			
+			if(strcmp(send_buffer, "exit") == 0){
+
+				// Notify client exit to server
+				if( send(server_socket , "CLIENT_EXIT" , strlen("CLIENT_EXIT") , 0) < 0)
+				{
+					puts("Send failed");
+					return 1;
+				}
+
+				// Client socket closed
+				close(server_socket);
+				puts("Socket closed");
+				return 1;
+			}
+
 			//Send some data
 			if( send(server_socket , send_buffer , strlen(send_buffer) , 0) < 0)
 			{
@@ -61,32 +75,48 @@ int main(int argc , char *argv[])
 			puts(recv_buffer);
 		}
 		else {
-			printf("HOLA\n");
-			if(send(server_socket, "LOGIN_REQUEST", strlen("LOGIN_REQUEST"), 0) < 0){
+			// Message to start server login
+			if(send(server_socket, "LOGIN_REQUEST", strlen("LOGIN_REQUEST"), 0) < 0)
+			{
 				puts("Send failed");
 			}
-			while(recv(server_socket , recv_buffer , 2000 , 0)){
-				puts(recv_buffer);
+			// Waiting for server response (it should now ask for a username)
+			while(!logged_in && recv(server_socket , recv_buffer , 2000 , 0)){
+				printf("%s", recv_buffer); // User:
 				scanf("%s", send_buffer);
-				if(send(server_socket, send_buffer, strlen(send_buffer), 0) < 0){
+				if(send(server_socket, send_buffer, strlen(send_buffer), 0) < 0)
+				{
 					puts("Send failed");
 				}
-				while(recv(server_socket , recv_buffer , 2000 , 0))
+				// Waiting for server response (it should now ask for a password)
+				while(!logged_in && recv(server_socket , recv_buffer , 2000 , 0))
 				{
-					puts(recv_buffer);
+					printf("%s", recv_buffer); // Password:
 					scanf("%s", send_buffer);
-					if(send(server_socket, send_buffer, strlen(send_buffer), 0) < 0){
+					if(send(server_socket, send_buffer, strlen(send_buffer), 0) < 0)
+					{
 						puts("Send failed");
 					}
-					while(recv(server_socket , recv_buffer , 2000 , 0)){
-						puts(recv_buffer);
+					// Wait for server account validation
+					while(!logged_in && recv(server_socket , recv_buffer , 2000 , 0))
+					{
+						puts(recv_buffer); // AUTHENTICATED / BAD_AUTH
 
 						if(strncmp(recv_buffer, "AUTHENTICATED", strlen("AUTHENTICATED")) == 0)
 						{
+							// Client can now send more messages
 							logged_in = 1;
 						}
-						else  if(strncmp(recv_buffer, "BAD_AUTH", strlen("BAD_AUTH")) == 0)
+						else if(strncmp(recv_buffer, "BAD_AUTH", strlen("BAD_AUTH")) == 0)
 						{
+							// Notify client exit to server
+							if( send(server_socket , "CLIENT_EXIT" , strlen("CLIENT_EXIT") , 0) < 0)
+							{
+								puts("Send failed");
+								return 1;
+							}
+
+							// Client socket closed
 							close(server_socket);
 							return 1;
 						}
