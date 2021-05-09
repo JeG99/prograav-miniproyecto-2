@@ -1,0 +1,3 @@
+Socket created
+bind done
+Waiting for incoming connections...

@@ -1,63 +1,101 @@
-#include <sys/socket.h>
-#include <sys/types.h>
-#include <netinet/in.h>
-#include <netdb.h>
-#include <stdio.h>
-#include <string.h>
-#include <stdlib.h>
+#include <stdio.h>	//printf
+#include <string.h>	//strlen
+#include <sys/socket.h>	//socket
+#include <arpa/inet.h>	//inet_addr
 #include <unistd.h>
-#include <errno.h>
-#include <arpa/inet.h> 
 
-int main(int argc, char *argv[])
+int logged_in = 0;
+
+int main(int argc , char *argv[])
 {
-    int sockfd = 0, n = 0;
-    char recvBuff[1024];
-    struct sockaddr_in serv_addr; 
+	int server_socket;
+	struct sockaddr_in server;
+	char send_buffer[1000] , recv_buffer[2000];
+	
+	//Create socket
+	server_socket = socket(AF_INET , SOCK_STREAM , 0);
+	if (server_socket == -1)
+	{
+		printf("Could not create socket");
+	}
+	puts("Socket created");
+	
+	server.sin_addr.s_addr = inet_addr("127.0.0.1");
+	server.sin_family = AF_INET;
+	server.sin_port = htons( 8888 );
 
-    if(argc != 2)
+	//Connect to remote server
+	if (connect(server_socket , (struct sockaddr *)&server , sizeof(server)) < 0)
+	{
+		perror("connect failed. Error");
+		return 1;
+	}
+	
+	puts("Connected\n");
+	
+	//keep communicating with server
+	while(1)
     {
-        printf("\n Usage: %s <ip of server> \n",argv[0]);
-        return 1;
-    } 
 
-    memset(recvBuff, '0',sizeof(recvBuff));
-    if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
-        printf("\n Error : Could not create socket \n");
-        return 1;
-    } 
+		if(logged_in) {
+			memset(send_buffer, 0, strlen(send_buffer));
+			memset(recv_buffer, 0, strlen(recv_buffer));
+			printf("Enter send_buffer : ");
+			scanf("%s" , send_buffer);
+			
+			//Send some data
+			if( send(server_socket , send_buffer , strlen(send_buffer) , 0) < 0)
+			{
+				puts("Send failed");
+				return 1;
+			}
+			
+			//Receive a reply from the server
+			if( recv(server_socket , recv_buffer , 2000 , 0) < 0)
+			{
+				puts("recv failed");
+				break;
+			}
+			
+			puts("Server reply :");
+			puts(recv_buffer);
+		}
+		else {
+			printf("HOLA\n");
+			if(send(server_socket, "LOGIN_REQUEST", strlen("LOGIN_REQUEST"), 0) < 0){
+				puts("Send failed");
+			}
+			while(recv(server_socket , recv_buffer , 2000 , 0)){
+				puts(recv_buffer);
+				scanf("%s", send_buffer);
+				if(send(server_socket, send_buffer, strlen(send_buffer), 0) < 0){
+					puts("Send failed");
+				}
+				while(recv(server_socket , recv_buffer , 2000 , 0))
+				{
+					puts(recv_buffer);
+					scanf("%s", send_buffer);
+					if(send(server_socket, send_buffer, strlen(send_buffer), 0) < 0){
+						puts("Send failed");
+					}
+					while(recv(server_socket , recv_buffer , 2000 , 0)){
+						puts(recv_buffer);
 
-    memset(&serv_addr, '0', sizeof(serv_addr)); 
-
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(5000); 
-
-    if(inet_pton(AF_INET, argv[1], &serv_addr.sin_addr)<=0)
-    {
-        printf("\n inet_pton error occured\n");
-        return 1;
-    } 
-
-    if( connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-    {
-       printf("\n Error : Connect Failed \n");
-       return 1;
-    } 
-
-    while ( (n = read(sockfd, recvBuff, sizeof(recvBuff)-1)) > 0)
-    {
-        recvBuff[n] = 0;
-        if(fputs(recvBuff, stdout) == EOF)
-        {
-            printf("\n Error : Fputs error\n");
-        }
-    } 
-
-    if(n < 0)
-    {
-        printf("\n Read error \n");
-    } 
-
-    return 0;
+						if(strncmp(recv_buffer, "AUTHENTICATED", strlen("AUTHENTICATED")) == 0)
+						{
+							logged_in = 1;
+						}
+						else  if(strncmp(recv_buffer, "BAD_AUTH", strlen("BAD_AUTH")) == 0)
+						{
+							close(server_socket);
+							return 1;
+						}
+					}
+				}	
+			}
+		}
+	}
+	
+	close(server_socket);
+	return 0;
 }
