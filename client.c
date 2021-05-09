@@ -24,7 +24,7 @@ int main(int argc, char *argv[])
 
   server.sin_addr.s_addr = inet_addr("127.0.0.1");
 	server.sin_family = AF_INET;
-	server.sin_port = htons( 5000 );
+	server.sin_port = htons( 5001 );
 
   //Connect to remote server
 	if (connect(sock , (struct sockaddr *)&server , sizeof(server)) < 0) {
@@ -34,13 +34,36 @@ int main(int argc, char *argv[])
 
   puts("Connected\n");
 
+  int isAuthenticated = 0;
+  do {
+    printf("Enter auth (user:pass): ");
+    scanf("%s" , message);
+
+    if( send(sock , message , strlen(message) , 0) < 0) {
+      puts("Send failed");
+      return 1;
+    }
+
+    if( recv(sock , server_reply , 2000 , 0) < 0) {
+      puts("recv failed");
+      break;
+    }
+
+    if (strcmp("401", server_reply) == 0) {
+      printf("Bad auth, please try again\n");
+    } else {
+      isAuthenticated = 1;
+    }
+
+  } while (!isAuthenticated);
+
   //keep communicating with server
 	while(1) {
+		//Send some data
 		printf("Enter message : ");
 		scanf("%s" , message);
-		
-		//Send some data
-		if( send(sock , message , strlen(message) , 0) < 0) {
+
+    if( send(sock , message , strlen(message) , 0) < 0) {
 			puts("Send failed");
 			return 1;
 		}
@@ -50,7 +73,8 @@ int main(int argc, char *argv[])
 			puts("recv failed");
 			break;
 		}
-		
+
+		//Receive a reply from the server
 		puts("Server reply :");
 		puts(server_reply);
 	}
