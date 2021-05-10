@@ -40,6 +40,34 @@ int check_auth (char* checkAuth) {
   return strcmp (auth, checkAuth) == 0;
 }
 
+char *joinstr (const char **s, const char *sep)
+{
+    char *joined = NULL;                /* pointer to joined string w/sep */
+    size_t lensep = strlen (sep),       /* length of separator */
+        sz = 0;                         /* current stored size */
+    int first = 1;                      /* flag whether first term */
+
+    while (*s) {                        /* for each string in s */
+        size_t len = strlen (*s);
+        /* allocate/reallocate joined */
+        void *tmp = realloc (joined, sz + len + (first ? 0 : lensep) + 1);
+        if (!tmp) {                     /* validate allocation */
+            perror ("realloc-tmp");     /* handle error (adjust as req'd) */
+            exit (EXIT_FAILURE);
+        }
+        joined = tmp;                   /* assign allocated block to joined */
+        if (!first) {                   /* if not first string */
+            strcpy (joined + sz, sep);  /* copy separator */
+            sz += lensep;               /* update stored size */
+        }
+        strcpy (joined + sz, *s++);     /* copy string to joined */
+        first = 0;                      /* unset first flag */
+        sz += len;                      /* update stored size */
+    }
+
+    return joined;      /* return joined string */
+}
+
 int main() {
     printf("Starting server\n");
 
@@ -49,7 +77,6 @@ int main() {
     struct sockaddr_in server, client; 
     char client_message[2000], server_response[2000];
 
-    char sendBuff[1025];
     time_t ticks; 
 
     //Create socket
@@ -130,12 +157,22 @@ int main() {
       }
 
       db_table* selected = Select(table1, selectArr, colsSelected);
-      printTable(selected);
+      // printTable(selected);
 
-      strcpy(server_response, "ok");
-
-      //Send the message back to client
+      char numRes[5];
+      sprintf(numRes, "%d", selected->lastRow);
+      bzero(server_response, 2000);
+      strcpy(server_response, numRes);
       write(client_sock , server_response , strlen(server_response));
+
+      char res[2000];
+
+      for (int i = 0; i < selected->lastRow; i++) {
+        strcpy(res, joinstr(selected->rows[i], ","));
+        puts(res);
+        write(client_sock , res , strlen(res));
+        bzero(res, 2000);
+      }
     }
     bzero(client_message, 2000);
   }
