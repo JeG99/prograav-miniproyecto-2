@@ -94,9 +94,10 @@ int main() {
   //Receive a message from client
   bzero(client_message, 2000);
   while( (read_size = recv(client_sock , client_message , 2000 , 0)) > 0 ) {
-    if (!isAuthenticated) {
+    bzero(server_response, 2000);
+    if (isAuthenticated == 0) {
       puts(client_message);
-      if(!check_auth(client_message)) {
+      if(check_auth(client_message) == 0) {
         strcpy(server_response, "401");
         isAuthenticated = 0;
       } else {
@@ -105,10 +106,11 @@ int main() {
       }
       strcpy(client_message, "");
       write(client_sock , server_response , strlen(server_response));
+    } else {
+      //Send the message back to client
+      write(client_sock , client_message , strlen(client_message));
     }
     bzero(client_message, 2000);
-    //Send the message back to client
-    // write(client_sock , client_message , strlen(client_message));
   }
 
   if (read_size == 0) {

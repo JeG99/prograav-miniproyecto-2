@@ -13,7 +13,7 @@ int main(int argc, char *argv[])
 {
   int sock;
 	struct sockaddr_in server;
-	char message[1000] , server_reply[2000];
+	char message[2000] , server_reply[2000];
 
   //Create socket
 	sock = socket(AF_INET , SOCK_STREAM , 0);
@@ -59,8 +59,9 @@ int main(int argc, char *argv[])
 
   //keep communicating with server
 	while(1) {
+    bzero(message, 2000);
 		//Send some data
-		printf("Enter message : ");
+		printf("Enter operation : ");
 		scanf("%s" , message);
 
     if( send(sock , message , strlen(message) , 0) < 0) {
@@ -77,6 +78,7 @@ int main(int argc, char *argv[])
 		//Receive a reply from the server
 		puts("Server reply :");
 		puts(server_reply);
+    bzero(server_reply, 2000);
 	}
 	
 	close(sock);
