@@ -12,6 +12,9 @@
 #include <errno.h>
 #include <time.h>
 
+#include "db.h"
+#include "table.h"
+
 int check_auth (char* checkAuth) {
   FILE *configFile;
   configFile = fopen ("config.txt", "r");
@@ -89,14 +92,15 @@ int main() {
 
   int num_message = 0;
   int isAuthenticated = 0;
-
+  char delim[2] = ":", *operation, *token;
+  db_table* table1 = parse("table_1.txt");
 
   //Receive a message from client
   bzero(client_message, 2000);
   while( (read_size = recv(client_sock , client_message , 2000 , 0)) > 0 ) {
-    if (!isAuthenticated) {
-      puts(client_message);
-      if(!check_auth(client_message)) {
+    bzero(server_response, 2000);
+    if (isAuthenticated == 0) {
+      if(check_auth(client_message) == 0) {
         strcpy(server_response, "401");
         isAuthenticated = 0;
       } else {
@@ -105,10 +109,35 @@ int main() {
       }
       strcpy(client_message, "");
       write(client_sock , server_response , strlen(server_response));
+    } else {
+      operation = strtok(client_message, delim);
+
+      if (strcmp(operation, "select") != 0) {
+        strcpy(server_response, "error");
+        printf("error\n");
+        write(client_sock , server_response , strlen(server_response));
+        continue;
+      }
+
+      operation = strtok(NULL, "");
+      char *p = strtok (operation, ",");
+      char *selectArr[5];
+      int colsSelected = 0;
+
+      while (p != NULL) {
+        selectArr[colsSelected++] = p;
+        p = strtok (NULL, ",");
+      }
+
+      db_table* selected = Select(table1, selectArr, colsSelected);
+      printTable(selected);
+
+      strcpy(server_response, "ok");
+
+      //Send the message back to client
+      write(client_sock , server_response , strlen(server_response));
     }
     bzero(client_message, 2000);
-    //Send the message back to client
-    // write(client_sock , client_message , strlen(client_message));
   }
 
   if (read_size == 0) {
