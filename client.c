@@ -11,53 +11,74 @@
 
 int main(int argc, char *argv[])
 {
-    int sockfd = 0, n = 0;
-    char recvBuff[1024];
-    struct sockaddr_in serv_addr; 
+  int sock;
+	struct sockaddr_in server;
+	char message[1000] , server_reply[2000];
 
-    if(argc != 2)
-    {
-        printf("\n Usage: %s <ip of server> \n",argv[0]);
-        return 1;
-    } 
+  //Create socket
+	sock = socket(AF_INET , SOCK_STREAM , 0);
+	if (sock == -1) {
+		printf("Could not create socket");
+	}
+	puts("Socket created");
 
-    memset(recvBuff, '0',sizeof(recvBuff));
-    if((sockfd = socket(AF_INET, SOCK_STREAM, 0)) < 0)
-    {
-        printf("\n Error : Could not create socket \n");
-        return 1;
-    } 
+  server.sin_addr.s_addr = inet_addr("127.0.0.1");
+	server.sin_family = AF_INET;
+	server.sin_port = htons( 5001 );
 
-    memset(&serv_addr, '0', sizeof(serv_addr)); 
+  //Connect to remote server
+	if (connect(sock , (struct sockaddr *)&server , sizeof(server)) < 0) {
+		perror("connect failed. Error");
+		return 1;
+	}
 
-    serv_addr.sin_family = AF_INET;
-    serv_addr.sin_port = htons(5000); 
+  puts("Connected\n");
 
-    if(inet_pton(AF_INET, argv[1], &serv_addr.sin_addr)<=0)
-    {
-        printf("\n inet_pton error occured\n");
-        return 1;
-    } 
+  int isAuthenticated = 0;
+  do {
+    printf("Enter auth (user:pass): ");
+    scanf("%s" , message);
 
-    if( connect(sockfd, (struct sockaddr *)&serv_addr, sizeof(serv_addr)) < 0)
-    {
-       printf("\n Error : Connect Failed \n");
-       return 1;
-    } 
+    if( send(sock , message , strlen(message) , 0) < 0) {
+      puts("Send failed");
+      return 1;
+    }
 
-    while ( (n = read(sockfd, recvBuff, sizeof(recvBuff)-1)) > 0)
-    {
-        recvBuff[n] = 0;
-        if(fputs(recvBuff, stdout) == EOF)
-        {
-            printf("\n Error : Fputs error\n");
-        }
-    } 
+    if( recv(sock , server_reply , 2000 , 0) < 0) {
+      puts("recv failed");
+      break;
+    }
 
-    if(n < 0)
-    {
-        printf("\n Read error \n");
-    } 
+    if (strcmp("401", server_reply) == 0) {
+      printf("Bad auth, please try again\n");
+    } else {
+      isAuthenticated = 1;
+    }
 
-    return 0;
+  } while (!isAuthenticated);
+
+  //keep communicating with server
+	while(1) {
+		//Send some data
+		printf("Enter message : ");
+		scanf("%s" , message);
+
+    if( send(sock , message , strlen(message) , 0) < 0) {
+			puts("Send failed");
+			return 1;
+		}
+		
+		//Receive a reply from the server
+		if( recv(sock , server_reply , 2000 , 0) < 0) {
+			puts("recv failed");
+			break;
+		}
+
+		//Receive a reply from the server
+		puts("Server reply :");
+		puts(server_reply);
+	}
+	
+	close(sock);
+	return 0;
 }
