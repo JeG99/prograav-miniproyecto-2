@@ -115,7 +115,6 @@ void Insert(db_table** o_table, char** insertion) {
     for (int i = 0; i < (*o_table)->shape.cols; i++) {
         (*o_table)->rows[(*o_table)->lastRow][i] = malloc(CELL_LENGTH);
         (*o_table)->rows[(*o_table)->lastRow][i] = insertion[i];
-        printf("%s \n", (*o_table)->rows[(*o_table)->lastRow][i]);
     }
     (*o_table)->lastRow++;
 }
