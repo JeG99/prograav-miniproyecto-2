@@ -58,7 +58,7 @@ int main(int argc, char *argv[])
 
   } while (!isAuthenticated);
 
-  int numRes;
+  int numRows, numCols;
 
   //keep communicating with server
 	while(1) {
@@ -73,21 +73,45 @@ int main(int argc, char *argv[])
 		}
 		
 		//Receive a reply from the server
-    bzero(server_reply, 2000);
+    memset(server_reply,0, 2000);
 		if( recv(sock , server_reply , 2000 , 0) < 0) {
 			puts("recv failed");
 			break;
 		}
 
-    numRes = atoi(server_reply);
-
-    for (int i = 0; i < numRes; i++) {
-      bzero(server_reply, 2000);
+    if (strcmp(server_reply, "200") == 0) {
+      memset(server_reply,0, 2000);
       if( recv(sock , server_reply , 2000 , 0) < 0) {
         puts("recv failed");
         break;
       }
-      puts(server_reply);
+    }
+
+    printf("server res %s\n", server_reply);
+    numRows = strtol(server_reply, (char **)NULL, 10);
+    printf("num rows %d\n", numRows);
+
+    for (int i = 0; i < numRows; i++) {
+      memset(server_reply,0, 2000);
+      if( recv(sock , server_reply , 2000 , 0) < 0) {
+        puts("recv failed");
+        break;
+      }
+
+      printf("server res %s\n", server_reply);
+      numCols = strtol(server_reply, (char **)NULL, 10);
+      printf("num cols %d\n", numCols);
+
+      for (int c = 0; c < numCols; c++) {
+        memset(server_reply,0, 2000);
+        if( recv(sock , server_reply , 2000 , 0) < 0) {
+          puts("recv failed");
+          break;
+        }
+
+        printf("%s ", server_reply);
+      }
+      printf("\n");
     }
 	}
 	

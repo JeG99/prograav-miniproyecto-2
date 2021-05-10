@@ -12,6 +12,9 @@
 #include <errno.h>
 #include <time.h>
 
+#include "db.h"
+#include "table.h"
+
 int check_auth (char* checkAuth) {
   FILE *configFile;
   configFile = fopen ("config.txt", "r");
@@ -46,7 +49,6 @@ void server_init() {
     struct sockaddr_in server, client; 
     char client_message[2000], server_response[2000];
 
-    char sendBuff[1025];
     time_t ticks; 
 
     //Create socket
@@ -89,14 +91,14 @@ void server_init() {
 
   int num_message = 0;
   int isAuthenticated = 0;
-
+  char delim[2] = ":", *operation, *token;
+  db_table* table1 = parse("table_1.txt");
 
   //Receive a message from client
   bzero(client_message, 2000);
   while( (read_size = recv(client_sock , client_message , 2000 , 0)) > 0 ) {
     bzero(server_response, 2000);
     if (isAuthenticated == 0) {
-      puts(client_message);
       if(check_auth(client_message) == 0) {
         strcpy(server_response, "401");
         isAuthenticated = 0;
@@ -107,8 +109,52 @@ void server_init() {
       strcpy(client_message, "");
       write(client_sock , server_response , strlen(server_response));
     } else {
-      //Send the message back to client
-      write(client_sock , client_message , strlen(client_message));
+      operation = strtok(client_message, delim);
+
+      if (strcmp(operation, "select") != 0) {
+        strcpy(server_response, "error");
+        printf("error\n");
+        write(client_sock , server_response , strlen(server_response));
+        continue;
+      }
+
+      operation = strtok(NULL, "");
+      char *p = strtok (operation, ",");
+      char *selectArr[5];
+      int colsSelected = 0;
+
+      while (p != NULL) {
+        selectArr[colsSelected++] = p;
+        p = strtok (NULL, ",");
+      }
+
+      db_table* selected = Select(table1, selectArr, colsSelected);
+      // printTable(selected);
+
+      char numRes[5];
+      sprintf(numRes, "%d", selected->lastRow);
+      memset(server_response, 0, 2000);
+      strcpy(server_response, numRes);
+      write(client_sock , server_response , strlen(server_response));
+      sleep(1);
+
+      char res[2000];
+
+      for (int i = 0; i < selected->lastRow; i++) {
+        memset(numRes, 0, 5);
+        sprintf(numRes, "%d", selected->shape.cols);
+        memset(server_response, 0, 2000);
+        strcpy(server_response, numRes);
+        write(client_sock , server_response , strlen(server_response));
+        sleep(1);
+
+        for (int c = 0; c < selected->shape.cols; c++) {
+          memset(server_response, 0, 2000);
+          strcpy(server_response, selected->rows[i][c]);
+          write(client_sock , server_response , strlen(server_response));
+          sleep(1);
+        }
+      }
     }
     bzero(client_message, 2000);
   }

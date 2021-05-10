@@ -40,34 +40,6 @@ int check_auth (char* checkAuth) {
   return strcmp (auth, checkAuth) == 0;
 }
 
-char *joinstr (const char **s, const char *sep)
-{
-    char *joined = NULL;                /* pointer to joined string w/sep */
-    size_t lensep = strlen (sep),       /* length of separator */
-        sz = 0;                         /* current stored size */
-    int first = 1;                      /* flag whether first term */
-
-    while (*s) {                        /* for each string in s */
-        size_t len = strlen (*s);
-        /* allocate/reallocate joined */
-        void *tmp = realloc (joined, sz + len + (first ? 0 : lensep) + 1);
-        if (!tmp) {                     /* validate allocation */
-            perror ("realloc-tmp");     /* handle error (adjust as req'd) */
-            exit (EXIT_FAILURE);
-        }
-        joined = tmp;                   /* assign allocated block to joined */
-        if (!first) {                   /* if not first string */
-            strcpy (joined + sz, sep);  /* copy separator */
-            sz += lensep;               /* update stored size */
-        }
-        strcpy (joined + sz, *s++);     /* copy string to joined */
-        first = 0;                      /* unset first flag */
-        sz += len;                      /* update stored size */
-    }
-
-    return joined;      /* return joined string */
-}
-
 int main() {
     printf("Starting server\n");
 
@@ -161,17 +133,27 @@ int main() {
 
       char numRes[5];
       sprintf(numRes, "%d", selected->lastRow);
-      bzero(server_response, 2000);
+      memset(server_response, 0, 2000);
       strcpy(server_response, numRes);
       write(client_sock , server_response , strlen(server_response));
+      sleep(1);
 
       char res[2000];
 
       for (int i = 0; i < selected->lastRow; i++) {
-        strcpy(res, joinstr(selected->rows[i], ","));
-        puts(res);
-        write(client_sock , res , strlen(res));
-        bzero(res, 2000);
+        memset(numRes, 0, 5);
+        sprintf(numRes, "%d", selected->shape.cols);
+        memset(server_response, 0, 2000);
+        strcpy(server_response, numRes);
+        write(client_sock , server_response , strlen(server_response));
+        sleep(1);
+
+        for (int c = 0; c < selected->shape.cols; c++) {
+          memset(server_response, 0, 2000);
+          strcpy(server_response, selected->rows[i][c]);
+          write(client_sock , server_response , strlen(server_response));
+          sleep(1);
+        }
       }
     }
     bzero(client_message, 2000);
