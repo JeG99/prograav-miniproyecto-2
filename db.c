@@ -110,6 +110,79 @@ db_table* Select(db_table* o_table, char** columns, int columnSize) {
     return table;
 }
 
+db_table* Join(db_table* table_a, db_table* table_b) {
+    // Busca columna comun
+    int taCommonColIdx = -1, tbCommonColIdx = -1;
+
+    for (int i = 0; i < table_a->shape.cols; i++) {
+        for (int j = i; j < table_b->shape.cols; j++) {
+            if (strcmp(table_a->columns[i], table_b->columns[j]) == 0) {
+                taCommonColIdx = i;
+                tbCommonColIdx = j;
+            }
+        }
+        if (i == table_a->shape.cols - 1 && taCommonColIdx == -1) {
+            return NULL;  // No hay columna para hacer JOIN
+        }
+    }
+
+    // Dimensiones de la tabla
+
+    matrix_shape shape;
+    shape.rows = table_a->shape.rows > table_b->shape.rows
+                     ? table_a->shape.rows
+                     : table_b->shape.rows;
+    shape.cols = table_a->shape.cols + table_b->shape.cols - 1;
+
+    char**  columns = malloc(sizeof(char*) * shape.cols);
+
+    int offset = 0;
+    for (int i = 0; i < shape.cols; i++) {
+        columns[i] = malloc(sizeof(char) * CELL_LENGTH);
+
+        if (i < table_a->shape.cols) {
+            strcpy(columns[i], table_a->columns[i]);
+        } else {
+            int bColIdx = i - table_a->shape.cols + offset;
+            if (tbCommonColIdx != bColIdx) {
+                strcpy(columns[i], table_b->columns[bColIdx]);
+            } else {
+                strcpy(columns[i], table_b->columns[bColIdx + 1]);
+                offset++;
+            }
+        }
+    }
+
+    db_table* table = createTable(columns, shape.cols, shape.rows);
+
+
+    for (int a_i = 0; a_i < table_a->lastRow; a_i++) {
+        for (int b_i = 0; b_i < table_b->lastRow; b_i++) {
+            if (strcmp(table_a->rows[a_i][taCommonColIdx],
+                       table_b->rows[b_i][tbCommonColIdx]) == 0) {
+                int offset = 0;
+                for (int i = 0; i < shape.cols; i++) {
+                    if (i < table_a->shape.cols) {
+                        strcpy(table->rows[table->lastRow][i], table_a->rows[a_i][i]);
+                    } else {
+                        int bColIdx = i - table_a->shape.cols + offset;
+                        if (tbCommonColIdx != bColIdx) {
+                            strcpy(table->rows[table->lastRow][i], table_b->rows[b_i][bColIdx]);
+                        } else {
+                            strcpy(table->rows[table->lastRow][i], table_b->rows[b_i][bColIdx + 1]);
+                            offset++;
+                        }
+                    }
+                }
+
+                table->lastRow++;
+            }
+        }
+    }
+
+    return table;
+}
+
 void Insert(db_table** o_table, char** insertion) {
     (*o_table)->rows[(*o_table)->lastRow] = malloc(sizeof(char*) * (*o_table)->shape.cols);
     for (int i = 0; i < (*o_table)->shape.cols; i++) {
