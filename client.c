@@ -44,6 +44,7 @@ int main(int argc, char *argv[])
       return 1;
     }
 
+    bzero(server_reply, 2000);
     if( recv(sock , server_reply , 2000 , 0) < 0) {
       puts("recv failed");
       break;
@@ -56,6 +57,8 @@ int main(int argc, char *argv[])
     }
 
   } while (!isAuthenticated);
+
+  int numRes;
 
   //keep communicating with server
 	while(1) {
@@ -70,15 +73,22 @@ int main(int argc, char *argv[])
 		}
 		
 		//Receive a reply from the server
+    bzero(server_reply, 2000);
 		if( recv(sock , server_reply , 2000 , 0) < 0) {
 			puts("recv failed");
 			break;
 		}
 
-		//Receive a reply from the server
-		puts("Server reply :");
-		puts(server_reply);
-    bzero(server_reply, 2000);
+    numRes = atoi(server_reply);
+
+    for (int i = 0; i < numRes; i++) {
+      bzero(server_reply, 2000);
+      if( recv(sock , server_reply , 2000 , 0) < 0) {
+        puts("recv failed");
+        break;
+      }
+      puts(server_reply);
+    }
 	}
 	
 	close(sock);
