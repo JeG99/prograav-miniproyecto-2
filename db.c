@@ -77,7 +77,7 @@ db_table* parse(char* filename) {
     return table;
 }
 
-db_table* select(db_table* o_table, char** columns, int columnSize) {
+db_table* Select(db_table* o_table, char** columns, int columnSize) {
     db_table* table = malloc(sizeof(db_table));
     table->columns = columns;
 
@@ -108,4 +108,13 @@ db_table* select(db_table* o_table, char** columns, int columnSize) {
     }
 
     return table;
+}
+
+void Insert(db_table** o_table, char** insertion) {
+    (*o_table)->rows[(*o_table)->lastRow] = malloc(sizeof(char*) * (*o_table)->shape.cols);
+    for (int i = 0; i < (*o_table)->shape.cols; i++) {
+        (*o_table)->rows[(*o_table)->lastRow][i] = malloc(CELL_LENGTH);
+        (*o_table)->rows[(*o_table)->lastRow][i] = insertion[i];
+    }
+    (*o_table)->lastRow++;
 }
