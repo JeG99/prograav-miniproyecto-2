@@ -110,7 +110,6 @@ db_table* Select(db_table* o_table, char** columns, int columnSize) {
     return table;
 }
 
-<<<<<<< HEAD
 void Insert(db_table** o_table, char** insertion) {
     (*o_table)->rows[(*o_table)->lastRow] = malloc(sizeof(char*) * (*o_table)->shape.cols);
     for (int i = 0; i < (*o_table)->shape.cols; i++) {
@@ -119,7 +118,7 @@ void Insert(db_table** o_table, char** insertion) {
     }
     (*o_table)->lastRow++;
 }
-=======
+
 db_table* Where(db_table* o_table, char* column, char* val) {
     db_table* table = malloc(sizeof(db_table));
     table->columns = o_table->columns;
@@ -152,4 +151,3 @@ db_table* Where(db_table* o_table, char* column, char* val) {
     table->lastRow = row;
     return table;
 }
->>>>>>> add where function
