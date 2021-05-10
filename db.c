@@ -77,7 +77,7 @@ db_table* parse(char* filename) {
     return table;
 }
 
-db_table* select(db_table* o_table, char** columns, int columnSize) {
+db_table* Select(db_table* o_table, char** columns, int columnSize) {
     db_table* table = malloc(sizeof(db_table));
     table->columns = columns;
 
@@ -107,5 +107,38 @@ db_table* select(db_table* o_table, char** columns, int columnSize) {
         }
     }
 
+    return table;
+}
+
+db_table* Where(db_table* o_table, char* column, char* val) {
+    db_table* table = malloc(sizeof(db_table));
+    table->columns = o_table->columns;
+    
+    matrix_shape shape;
+    shape.rows = o_table->shape.rows;
+    shape.cols = o_table->shape.cols;
+    table->shape = shape;
+    table->lastRow = o_table->lastRow;
+
+    table->rows = malloc(sizeof(char**) * shape.rows);
+
+    // Copia las filas de la tabla original
+    int row = 0;
+    for (int i = 0; i < o_table->lastRow; i++) {
+        table->rows[row] = malloc(sizeof(char*) * shape.cols);
+        for (int j = 0; j < o_table->shape.cols; j++) {
+            // Inserta el valor de la columna en la fila si esta en el select
+            if (strcmp(column, o_table->columns[j]) == 0) {
+                if(strcmp(val, o_table->rows[i][j]) == 0){
+                    for(int ii = 0; ii < o_table->shape.cols; ii++){
+                        table->rows[row][ii] = malloc(CELL_LENGTH);
+                        strcpy(table->rows[row][ii], o_table->rows[i][ii]);
+                    }
+                    row++;
+                }
+            }
+        }
+    }
+    table->lastRow = row;
     return table;
 }
