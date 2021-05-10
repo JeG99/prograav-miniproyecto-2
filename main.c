@@ -21,8 +21,12 @@ int main() {
     printTable(parsed);
 
     char* selection[] = {"c1", "c3", "c4"};
-    db_table* selected = select(parsed, selection, 3);
+    db_table* selected = Select(parsed, selection, 3);
     printTable(selected);
+
+    char* insertion[] = {"ins1", "ins2", "ins3"};
+    db_table* updated = Insert(selected, insertion);
+    printTable(updated);
 
     printTable(parsed);
 }

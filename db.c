@@ -77,7 +77,7 @@ db_table* parse(char* filename) {
     return table;
 }
 
-db_table* select(db_table* o_table, char** columns, int columnSize) {
+db_table* Select(db_table* o_table, char** columns, int columnSize) {
     db_table* table = malloc(sizeof(db_table));
     table->columns = columns;
 
@@ -107,5 +107,40 @@ db_table* select(db_table* o_table, char** columns, int columnSize) {
         }
     }
 
+    return table;
+}
+
+db_table *Insert(db_table* o_table, char** insertion) {
+    db_table* table = malloc(sizeof(db_table));
+    table->columns = o_table->columns;
+
+    matrix_shape shape;
+    shape.rows = o_table->shape.rows + 1;
+    shape.cols = o_table->shape.cols;
+    table->shape = shape;
+    table->lastRow = o_table->lastRow;
+
+    table->rows = malloc(sizeof(char**) * (shape.rows + 1));
+    
+    // Copia las filas de la tabla original
+    for (int i = 0; i < table->lastRow; i++){
+        table->rows[i] = malloc(sizeof(char*) * shape.cols);
+        
+        for(int j = 0; j < table->shape.cols; j++){
+            table->rows[i][j] = malloc(CELL_LENGTH);
+            strcpy(table->rows[i][j], o_table->rows[i][j]);
+        }
+    }
+    puts("hola\n");
+    table->lastRow++;
+    table->rows[table->lastRow] = malloc(sizeof(char*) * shape.cols);
+    for (int i = 0; i < table->shape.cols; i++) {
+        table->rows[table->lastRow][i] = malloc(CELL_LENGTH);
+        table->rows[table->lastRow][i] = insertion[i];
+        //printf("%s \n", table->rows[table->lastRow][i]);
+    }
+
+    //printf("%d\n", o_table->lastRow);
+    
     return table;
 }
