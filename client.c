@@ -71,6 +71,10 @@ int main(int argc, char *argv[])
 			puts("Send failed");
 			return 1;
 		}
+    
+    if (strcmp(message, "exit") == 0) {
+      return 0;
+    }
 		
 		//Receive a reply from the server
     memset(server_reply,0, 2000);

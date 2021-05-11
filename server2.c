@@ -47,7 +47,6 @@ void server_init() {
 
     int listenfd = 0, connfd = 0, socket_desc, c, client_sock, read_size;
     struct sockaddr_in server, client; 
-    char client_message[2000], server_response[2000];
 
     time_t ticks; 
 
@@ -74,9 +73,11 @@ void server_init() {
     //Listen
 	  listen(socket_desc , 3);
 
+
     //Accept and incoming connection
     puts("Waiting for incoming connections...");
     c = sizeof(struct sockaddr_in);
+start:
 
     //accept connection from an incoming client
 	  client_sock = accept(socket_desc, (struct sockaddr *)&client, (socklen_t*)&c);
@@ -89,6 +90,7 @@ void server_init() {
 
 /* ---------------------------- Socket connection --------------------------- */
 
+  char client_message[2000], server_response[2000];
   int num_message = 0;
   int isAuthenticated = 0;
   char delim[2] = ":", *token, *selectOp, *selectFields, *whereOp, *whereFields, *whereCol, *whereVal;
@@ -111,14 +113,15 @@ void server_init() {
   //Receive a message from client
   bzero(client_message, 2000);
   while( (read_size = recv(client_sock , client_message , 2000 , 0)) > 0 ) {
-    selectOp = strtok(client_message, delim);
+    if (strcmp(client_message, "exit") == 0) {
+      goto start;
+    } else {
+      selectOp = strtok(client_message, delim);
 
-      if (strcmp(selectOp, "select") != 0) {
-        strcpy(server_response, "error");
-        printf("error\n");
-        write(client_sock , server_response , strlen(server_response));
-        continue;
-      }
+      // strcpy(server_response, "error");
+      //   printf("error\n");
+      //   write(client_sock , server_response , strlen(server_response));
+      //   continue;
 
       db_table* resTable = table1;
 
@@ -167,6 +170,7 @@ void server_init() {
           sleep(1);
         }
       }
+    }
     bzero(client_message, 2000);
   }
 

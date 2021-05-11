@@ -74,6 +74,8 @@ int main() {
     //Listen
 	  listen(socket_desc , 3);
 
+start:
+
     //Accept and incoming connection
     puts("Waiting for incoming connections...");
     c = sizeof(struct sockaddr_in);
@@ -111,14 +113,15 @@ int main() {
   //Receive a message from client
   bzero(client_message, 2000);
   while( (read_size = recv(client_sock , client_message , 2000 , 0)) > 0 ) {
-    selectOp = strtok(client_message, delim);
+    if (strcmp(client_message, "exit") == 0) {
+      goto start;
+    } else {
+      selectOp = strtok(client_message, delim);
 
-      if (strcmp(selectOp, "select") != 0) {
-        strcpy(server_response, "error");
-        printf("error\n");
-        write(client_sock , server_response , strlen(server_response));
-        continue;
-      }
+      // strcpy(server_response, "error");
+      //   printf("error\n");
+      //   write(client_sock , server_response , strlen(server_response));
+      //   continue;
 
       db_table* resTable = table1;
 
@@ -167,6 +170,7 @@ int main() {
           sleep(1);
         }
       }
+    }
     bzero(client_message, 2000);
   }
 
