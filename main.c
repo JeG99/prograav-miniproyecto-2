@@ -1,6 +1,7 @@
 // Creado para pruebas *
 #include <stdio.h>
 #include <stdlib.h>
+#include <string.h>
 
 #include "db.h"
 #include "table.h"
@@ -39,4 +40,13 @@ int main() {
     printTable(joinB);
 
     printTable(joinTable);
+
+    saveTable("prueb.csv", joinTable);
+
+    db_table* quer = execute("select:c1,c2,c3:from:join_test_a.csv"); 
+
+    if (quer) {
+        printTable(quer);
+    }
+
 }
