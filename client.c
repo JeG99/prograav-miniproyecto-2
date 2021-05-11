@@ -87,9 +87,9 @@ int main(int argc, char *argv[])
       }
     }
 
-    printf("server res %s\n", server_reply);
+    // printf("server res %s\n", server_reply);
     numRows = strtol(server_reply, (char **)NULL, 10);
-    printf("num rows %d\n", numRows);
+    // printf("num rows %d\n", numRows);
 
     for (int i = 0; i < numRows; i++) {
       memset(server_reply,0, 2000);
@@ -98,9 +98,9 @@ int main(int argc, char *argv[])
         break;
       }
 
-      printf("server res %s\n", server_reply);
+      // printf("server res %s\n", server_reply);
       numCols = strtol(server_reply, (char **)NULL, 10);
-      printf("num cols %d\n", numCols);
+      // printf("num cols %d\n", numCols);
 
       for (int c = 0; c < numCols; c++) {
         memset(server_reply,0, 2000);

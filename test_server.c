@@ -91,46 +91,58 @@ int main() {
 
   int num_message = 0;
   int isAuthenticated = 0;
-  char delim[2] = ":", *operation, *token;
+  char delim[2] = ":", *token, *selectOp, *selectFields, *whereOp, *whereFields, *whereCol, *whereVal;
   db_table* table1 = parse("table_1.txt");
+
+  do {
+    bzero(client_message, 2000);
+    recv(client_sock , client_message , 2000 , 0);
+    bzero(server_response, 2000);
+    if(check_auth(client_message) == 0) {
+      strcpy(server_response, "401");
+      isAuthenticated = 0;
+    } else {
+      strcpy(server_response, "200");
+      isAuthenticated = 1;
+    }
+    write(client_sock , server_response , strlen(server_response));
+  } while (isAuthenticated == 0);
 
   //Receive a message from client
   bzero(client_message, 2000);
   while( (read_size = recv(client_sock , client_message , 2000 , 0)) > 0 ) {
-    bzero(server_response, 2000);
-    if (isAuthenticated == 0) {
-      if(check_auth(client_message) == 0) {
-        strcpy(server_response, "401");
-        isAuthenticated = 0;
-      } else {
-        strcpy(server_response, "200");
-        isAuthenticated = 1;
-      }
-      strcpy(client_message, "");
-      write(client_sock , server_response , strlen(server_response));
-    } else {
-      operation = strtok(client_message, delim);
+    selectOp = strtok(client_message, delim);
 
-      if (strcmp(operation, "select") != 0) {
+      if (strcmp(selectOp, "select") != 0) {
         strcpy(server_response, "error");
         printf("error\n");
         write(client_sock , server_response , strlen(server_response));
         continue;
       }
 
-      operation = strtok(NULL, "");
-      char *p = strtok (operation, ",");
+      db_table* resTable = table1;
+
+      selectFields = strtok(NULL, delim);
+      whereOp = strtok(NULL, delim);
+      whereFields = strtok(NULL, delim);
+
+      if (whereOp != NULL) {
+        whereCol = strtok(whereFields, "=");
+        whereVal = strtok (NULL, "");
+        resTable = Where(resTable, whereCol, whereVal);
+      }
+
+      // Select arr
+      char *p = strtok (selectFields, ",");
       char *selectArr[5];
       int colsSelected = 0;
-
       while (p != NULL) {
         selectArr[colsSelected++] = p;
         p = strtok (NULL, ",");
       }
+      db_table* selected = Select(resTable, selectArr, colsSelected);
 
-      db_table* selected = Select(table1, selectArr, colsSelected);
-      // printTable(selected);
-
+      // Send number of rows in response
       char numRes[5];
       sprintf(numRes, "%d", selected->lastRow);
       memset(server_response, 0, 2000);
@@ -155,7 +167,6 @@ int main() {
           sleep(1);
         }
       }
-    }
     bzero(client_message, 2000);
   }
 
