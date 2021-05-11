@@ -85,7 +85,11 @@ wait_for_new_connection:
 		//Send the message back to client
         memset(recv_buffer, 0, strlen(recv_buffer));
         read_size = recv(client_socket, recv_buffer, 2000, 0);
-        //write(client_socket, recv_buffer, strlen(recv_buffer));
+
+        if(strncmp(recv_buffer, "QUERY_REQUEST", strlen("QUERY_REQUEST")) == 0)
+        {
+
+        }
 
         if(strncmp(recv_buffer, "CLIENT_EXIT", strlen("CLIENT_EXIT")) == 0)
         {

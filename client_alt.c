@@ -3,6 +3,7 @@
 #include <sys/socket.h>	//socket
 #include <arpa/inet.h>	//inet_addr
 #include <unistd.h>
+#include <stdlib.h> // free
 
 int logged_in = 0;
 
@@ -10,7 +11,8 @@ int main(int argc , char *argv[])
 {
 	int server_socket;
 	struct sockaddr_in server;
-	char send_buffer[1000] , recv_buffer[2000];
+	char send_buffer[1000];
+	char recv_buffer[2000];
 	
 	//Create socket
 	server_socket = socket(AF_INET , SOCK_STREAM , 0);
@@ -39,10 +41,19 @@ int main(int argc , char *argv[])
 		memset(send_buffer, 0, strlen(send_buffer));
 		memset(recv_buffer, 0, strlen(recv_buffer));
 		if(logged_in) {
-			printf("Enter send_buffer : ");
-			scanf("%s" , send_buffer);
+			size_t buffer_size = 0;
+			char* query_buffer = NULL;
+			printf("Enter send_buffer: ");
+			//scanf("%s" , send_buffer);
+			getline(&query_buffer, &buffer_size, stdin);
+			query_buffer[buffer_size] = '\0';
+			if(send(server_socket, query_buffer, strlen(query_buffer) , 0) < 0)
+			{
+				puts("Send failed");
+				return 1;
+			}
 			
-			if(strcmp(send_buffer, "exit") == 0){
+			if(strncmp(query_buffer, "exit", strlen("exit")) == 0){
 
 				// Notify client exit to server
 				if( send(server_socket , "CLIENT_EXIT" , strlen("CLIENT_EXIT") , 0) < 0)
@@ -56,23 +67,26 @@ int main(int argc , char *argv[])
 				puts("Socket closed");
 				return 1;
 			}
-
+			/*
 			//Send some data
 			if( send(server_socket , send_buffer , strlen(send_buffer) , 0) < 0)
 			{
 				puts("Send failed");
 				return 1;
 			}
-			
+			*/
 			//Receive a reply from the server
-			if( recv(server_socket , recv_buffer , 2000 , 0) < 0)
+			if( recv(server_socket, recv_buffer, 2000 , 0) < 0)
 			{
 				puts("recv failed");
 				break;
 			}
 			
-			puts("Server reply :");
+			puts("Server reply:");
 			puts(recv_buffer);
+			free(query_buffer);
+			//memset(query_buffer, 0, strlen(query_buffer));
+
 		}
 		else {
 			// Message to start server login
@@ -105,6 +119,7 @@ int main(int argc , char *argv[])
 						if(strncmp(recv_buffer, "AUTHENTICATED", strlen("AUTHENTICATED")) == 0)
 						{
 							// Client can now send more messages
+							puts("(type <exit> to close session)");
 							logged_in = 1;
 						}
 						else if(strncmp(recv_buffer, "BAD_AUTH", strlen("BAD_AUTH")) == 0)
