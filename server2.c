@@ -116,38 +116,38 @@ start:
     if (strcmp(client_message, "exit") == 0) {
       goto start;
     } else {
-      selectOp = strtok(client_message, delim);
+      // selectOp = strtok(client_message, delim);
 
       // strcpy(server_response, "error");
       //   printf("error\n");
       //   write(client_sock , server_response , strlen(server_response));
       //   continue;
 
-      db_table* resTable = table1;
+      db_table* resTable = execute(client_message);
 
-      selectFields = strtok(NULL, delim);
-      whereOp = strtok(NULL, delim);
-      whereFields = strtok(NULL, delim);
+      // selectFields = strtok(NULL, delim);
+      // whereOp = strtok(NULL, delim);
+      // whereFields = strtok(NULL, delim);
 
-      if (whereOp != NULL) {
-        whereCol = strtok(whereFields, "=");
-        whereVal = strtok (NULL, "");
-        resTable = Where(resTable, whereCol, whereVal);
-      }
+      // if (whereOp != NULL) {
+      //   whereCol = strtok(whereFields, "=");
+      //   whereVal = strtok (NULL, "");
+      //   resTable = Where(resTable, whereCol, whereVal);
+      // }
 
-      // Select arr
-      char *p = strtok (selectFields, ",");
-      char *selectArr[5];
-      int colsSelected = 0;
-      while (p != NULL) {
-        selectArr[colsSelected++] = p;
-        p = strtok (NULL, ",");
-      }
-      db_table* selected = Select(resTable, selectArr, colsSelected);
+      // // Select arr
+      // char *p = strtok (selectFields, ",");
+      // char *selectArr[5];
+      // int colsSelected = 0;
+      // while (p != NULL) {
+      //   selectArr[colsSelected++] = p;
+      //   p = strtok (NULL, ",");
+      // }
+      // db_table* selected = Select(resTable, selectArr, colsSelected);
 
       // Send number of rows in response
       char numRes[5];
-      sprintf(numRes, "%d", selected->lastRow);
+      sprintf(numRes, "%d", resTable->lastRow);
       memset(server_response, 0, 2000);
       strcpy(server_response, numRes);
       write(client_sock , server_response , strlen(server_response));
@@ -155,17 +155,17 @@ start:
 
       char res[2000];
 
-      for (int i = 0; i < selected->lastRow; i++) {
+      for (int i = 0; i < resTable->lastRow; i++) {
         memset(numRes, 0, 5);
-        sprintf(numRes, "%d", selected->shape.cols);
+        sprintf(numRes, "%d", resTable->shape.cols);
         memset(server_response, 0, 2000);
         strcpy(server_response, numRes);
         write(client_sock , server_response , strlen(server_response));
         sleep(1);
 
-        for (int c = 0; c < selected->shape.cols; c++) {
+        for (int c = 0; c < resTable->shape.cols; c++) {
           memset(server_response, 0, 2000);
-          strcpy(server_response, selected->rows[i][c]);
+          strcpy(server_response, resTable->rows[i][c]);
           write(client_sock , server_response , strlen(server_response));
           sleep(1);
         }
