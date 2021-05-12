@@ -84,7 +84,11 @@ void saveTable(char* filename, db_table* table) {
     if (file != NULL) {
         // Guardar columnas
         for (int i = 0; i < shape.cols; i++) {
-            fprintf(file, "%s,", table->columns[i]);
+            if (i < shape.cols - 1) {
+                fprintf(file, "%s,", table->columns[i]);
+            } else {
+                fprintf(file, "%s", table->columns[i]);
+            }
         }
         fprintf(file, "\n");
 
