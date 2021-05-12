@@ -11,8 +11,7 @@ char* trim(char* str) {
 
     while (isspace((unsigned char)*str)) str++;
 
-    if (*str == 0)
-        return str;
+    if (*str == 0) return str;
 
     end = str + strlen(str) - 1;
     while (end > str && isspace((unsigned char)*end)) end--;
@@ -92,7 +91,11 @@ void saveTable(char* filename, db_table* table) {
         // Guardar filas
         for (int i = 0; i < table->lastRow; i++) {
             for (int j = 0; j < shape.cols; j++) {
-                fprintf(file, "%s,", table->rows[i][j]);
+                if (j < shape.cols - 1) {
+                    fprintf(file, "%s,", table->rows[i][j]);
+                } else {
+                    fprintf(file, "%s", table->rows[i][j]);
+                }
             }
             fprintf(file, "\n");
         }
@@ -123,7 +126,49 @@ db_table* execute(char* o_query) {
     db_table* join_table = NULL;
 
     while (token != NULL) {
-        if (strcmp(token, "select") == 0) {
+        if (strcmp(token, "insert") == 0) {
+            token = strtok_r(NULL, ":", &end_str);
+
+            printf("INSERT table: %s\n", token);
+            char tableName[100];
+            strcpy(tableName, token);
+
+            db_table* insertTable = parse(tableName);
+
+            if (insertTable == NULL) {
+                printf("Invalid query1\n");
+                return NULL;
+            }
+
+            token = strtok_r(NULL, ":", &end_str);
+            char* end_token;
+            char* subtoken = strtok_r(token, ",", &end_token);
+            int col_idx = 0;
+            int insertCols = 0;
+            char* insertRow[100];
+
+            while (subtoken != NULL) {
+                insertRow[col_idx] = malloc(sizeof(char*) * CELL_LENGTH);
+                strcpy(insertRow[col_idx], trim(subtoken));
+                printf("%s, ", insertRow[col_idx]);
+                col_idx++;
+                subtoken = strtok_r(NULL, ",", &end_token);
+            }
+
+            printf("\n");
+
+            printTable(insertTable);
+
+            insertCols = col_idx;
+            printf("%d %d\n", insertCols, insertTable->shape.cols);
+            if (insertCols != insertTable->shape.cols) {
+                printf("Invalid query2\n");
+                return NULL;
+            }
+
+            Insert(insertTable, insertRow);
+            saveTable(tableName, insertTable);
+        } else if (strcmp(token, "select") == 0) {
             for (int i = 0; i < 4; i++) {
                 if (stepMarks[i] != 0) {
                     printf("Invalid query\n");
@@ -131,6 +176,7 @@ db_table* execute(char* o_query) {
                 }
             }
             token = strtok_r(NULL, ":", &end_str);
+
             char* end_token;
             char* subtoken = strtok_r(token, ",", &end_token);
             int col_idx = 0;
@@ -218,7 +264,7 @@ db_table* execute(char* o_query) {
         printf("Invalid query\n");
         return NULL;
     }
-    
+
     result_table = Select(result_table, selectColumns, selectSize);
 
     if (!result_table) {
@@ -306,7 +352,7 @@ db_table* Join(db_table* table_a, db_table* table_b) {
                      : table_b->shape.rows;
     shape.cols = table_a->shape.cols + table_b->shape.cols - 1;
 
-    char**  columns = malloc(sizeof(char*) * shape.cols);
+    char** columns = malloc(sizeof(char*) * shape.cols);
 
     int offset = 0;
     for (int i = 0; i < shape.cols; i++) {
@@ -327,7 +373,6 @@ db_table* Join(db_table* table_a, db_table* table_b) {
 
     db_table* table = createTable(columns, shape.cols, shape.rows);
 
-
     for (int a_i = 0; a_i < table_a->lastRow; a_i++) {
         for (int b_i = 0; b_i < table_b->lastRow; b_i++) {
             if (strcmp(table_a->rows[a_i][taCommonColIdx],
@@ -335,13 +380,16 @@ db_table* Join(db_table* table_a, db_table* table_b) {
                 int offset = 0;
                 for (int i = 0; i < shape.cols; i++) {
                     if (i < table_a->shape.cols) {
-                        strcpy(table->rows[table->lastRow][i], table_a->rows[a_i][i]);
+                        strcpy(table->rows[table->lastRow][i],
+                               table_a->rows[a_i][i]);
                     } else {
                         int bColIdx = i - table_a->shape.cols + offset;
                         if (tbCommonColIdx != bColIdx) {
-                            strcpy(table->rows[table->lastRow][i], table_b->rows[b_i][bColIdx]);
+                            strcpy(table->rows[table->lastRow][i],
+                                   table_b->rows[b_i][bColIdx]);
                         } else {
-                            strcpy(table->rows[table->lastRow][i], table_b->rows[b_i][bColIdx + 1]);
+                            strcpy(table->rows[table->lastRow][i],
+                                   table_b->rows[b_i][bColIdx + 1]);
                             offset++;
                         }
                     }
@@ -355,19 +403,25 @@ db_table* Join(db_table* table_a, db_table* table_b) {
     return table;
 }
 
-void Insert(db_table** o_table, char** insertion) {
-    (*o_table)->rows[(*o_table)->lastRow] = malloc(sizeof(char*) * (*o_table)->shape.cols);
-    for (int i = 0; i < (*o_table)->shape.cols; i++) {
-        (*o_table)->rows[(*o_table)->lastRow][i] = malloc(CELL_LENGTH);
-        (*o_table)->rows[(*o_table)->lastRow][i] = insertion[i];
+void Insert(db_table* o_table, char** insertion) {
+    // (*o_table)->rows[(*o_table)->lastRow] =
+    //     malloc(sizeof(char*) * (*o_table)->shape.cols);
+
+    o_table->rows[o_table->lastRow] =
+        malloc(sizeof(char*) * o_table->shape.cols);
+
+    for (int i = 0; i < o_table->shape.cols; i++) {
+        o_table->rows[o_table->lastRow][i] = malloc(CELL_LENGTH);
+        o_table->rows[o_table->lastRow][i] = insertion[i];
     }
-    (*o_table)->lastRow++;
+
+    o_table->lastRow++;
 }
 
 db_table* Where(db_table* o_table, char* column, char* val) {
     db_table* table = malloc(sizeof(db_table));
     table->columns = o_table->columns;
-    
+
     matrix_shape shape;
     shape.rows = o_table->shape.rows;
     shape.cols = o_table->shape.cols;
@@ -383,8 +437,8 @@ db_table* Where(db_table* o_table, char* column, char* val) {
         for (int j = 0; j < o_table->shape.cols; j++) {
             // Inserta el valor de la columna en la fila si esta en el select
             if (strcmp(column, o_table->columns[j]) == 0) {
-                if(strcmp(val, o_table->rows[i][j]) == 0){
-                    for(int ii = 0; ii < o_table->shape.cols; ii++){
+                if (strcmp(val, o_table->rows[i][j]) == 0) {
+                    for (int ii = 0; ii < o_table->shape.cols; ii++) {
                         table->rows[row][ii] = malloc(CELL_LENGTH);
                         strcpy(table->rows[row][ii], o_table->rows[i][ii]);
                     }

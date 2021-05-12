@@ -28,5 +28,8 @@ int main() {
     db_table* where = Where(selected, "c4", "ew");
     printTable(where);
 
+    execute("insert:table_1.txt:1,2,3,4,5");
+    
+
     //printTable(parsed);
 }
